@@ -12,22 +12,16 @@ local is_valid_c_cpp_file = function(filepath)
 end
 
 local insert_guard_in_buffer = function(guardtop, guardend)
-    -- get buffer content
     local buf_data = vim.api.nvim_buf_get_lines(0, 0, -1, false)
 
-    -- join lines into single string
-    local full_text = table.concat(buf_data, "\n")
+    -- Split guard lines
+    local top_lines = vim.split(guardtop, "\n", { plain = true })
+    local end_lines = vim.split(guardend, "\n", { plain = true })
 
-    -- build guarded text
-    local guarded_text = guardtop .. "\n" .. full_text .. "\n" .. guardend
+    -- Combine: top + existing content + bottom
+    local new_lines = vim.list_extend(top_lines, buf_data)
+    new_lines = vim.list_extend(new_lines, end_lines)
 
-    -- split back into lines
-    local new_lines = {}
-    for line in guarded_text:gmatch("([^\n]*)\n?") do
-        table.insert(new_lines, line)
-    end
-
-    -- overwrite buffer with new lines
     vim.api.nvim_buf_set_lines(0, 0, -1, false, new_lines)
 end
 
@@ -49,7 +43,7 @@ M.insert_guard = function()
     local current_file_name = vim.fs.basename(current_file_path)
     local guard = parent_dir .. "_" .. current_file_name
     guard = guard:upper():gsub("[^A-Z0-9]", "_")
-    guard = "__" .. guard .. "__"
+    guard = guard .. "__"
 
     local guard_line_top = "#ifndef " .. guard .. "\n#define " .. guard .. "\n"
     local guard_line_end = "#endif"
@@ -59,8 +53,9 @@ M.insert_guard = function()
     end
 end
 
-vim.api.nvim_create_user_command("Hg", function()
-    M.insert_guard()
-end, {})
+M.setup = function(opts)
+    opts = opts or {}
+end
+
 
 return M
